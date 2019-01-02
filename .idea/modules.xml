@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/seq2seq_eg.iml" filepath="$PROJECT_DIR$/.idea/seq2seq_eg.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/seq2seq_encoder_dencoder.iml" filepath="$PROJECT_DIR$/.idea/seq2seq_encoder_dencoder.iml" />
     </modules>
   </component>
 </project>

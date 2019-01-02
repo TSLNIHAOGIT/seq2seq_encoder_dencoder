@@ -4,6 +4,20 @@
 # In[1]:
 
 # from distutils.version import LooseVersion
+
+'''
+操作步骤应该是先
+go go正常 eos ;pad是在最后加的。
+
+数据预处理步骤：
+0.构建字典，使用字典时，未知的词汇用unk表示
+1.将字母转为数字id,并且对decoder端的targt末尾添加eos作为结束标志
+2.get_batches首先对train_source、train_target进行padding处理
+3.decoder端的输入，将target的最后一个元素去掉（仅仅是最后一个元素而已），在最前面添加go
+4.
+5.
+
+'''
 import tensorflow as tf
 from tensorflow.python.layers.core import Dense
 
@@ -30,11 +44,35 @@ with open('letters_target.txt', 'r', encoding='utf-8') as f:
 # In[3]:
 
 source_data.split('\n')[:10]
+'''
+['bsaqq',
+ 'npy',
+ 'lbwuj',
+ 'bqv',
+ 'kial',
+ 'tddam',
+ 'edxpjpg',
+ 'nspv',
+ 'huloz',
+ 'kmclq']
+'''
 
 
 # In[4]:
 
 target_data.split('\n')[:10]
+'''
+['abqqs',
+ 'npy',
+ 'bjluw',
+ 'bqv',
+ 'aikl',
+ 'addmt',
+ 'degjppx',
+ 'npsv',
+ 'hlouz',
+ 'cklmq']
+'''
 
 
 # In[3]:
@@ -59,7 +97,15 @@ def extract_character_vocab(data):
 source_int_to_letter, source_letter_to_int = extract_character_vocab(source_data)
 target_int_to_letter, target_letter_to_int = extract_character_vocab(target_data)
 
-# 对字母进行转换
+
+'''
+({0: '<PAD>',
+  1: '<UNK>',
+  2: '<GO>',
+  3: '<EOS>',
+'''
+
+# 对字母进行转换;将字母转为数字，并且对target的末尾加了eos作为结束标志
 source_int = [[source_letter_to_int.get(letter, source_letter_to_int['<UNK>']) 
                for letter in line] for line in source_data.split('\n')]
 target_int = [[target_letter_to_int.get(letter, target_letter_to_int['<UNK>']) 
@@ -70,6 +116,18 @@ target_int = [[target_letter_to_int.get(letter, target_letter_to_int['<UNK>'])
 # In[5]:
 
 source_int[:10]
+'''
+[[10, 9, 24, 13, 13],
+ [27, 18, 15],
+ [26, 10, 12, 5, 16],
+ [10, 13, 20],
+ [6, 11, 24, 26],
+ [8, 7, 7, 24, 22],
+ [28, 7, 21, 18, 16, 18, 14],
+ [27, 9, 18, 20],
+ [29, 5, 26, 17, 23],
+ [6, 22, 19, 26, 13]]
+'''
 
 
 # In[6]:
@@ -93,7 +151,18 @@ def get_inputs():
     source_sequence_length = tf.placeholder(tf.int32, (None,), name='source_sequence_length')
     
     return inputs, targets, learning_rate, target_sequence_length, max_target_sequence_length, source_sequence_length
-
+'''
+[[24, 10, 13, 13, 9, 3],
+ [27, 18, 15, 3],
+ [10, 16, 26, 5, 12, 3],
+ [10, 13, 20, 3],
+ [24, 11, 6, 26, 3],
+ [24, 7, 7, 22, 8, 3],
+ [7, 28, 14, 16, 18, 18, 21, 3],
+ [27, 18, 9, 20, 3],
+ [29, 26, 17, 5, 23, 3],
+ [19, 6, 26, 22, 13, 3]]
+'''
 
 
 # In[8]:
@@ -227,6 +296,7 @@ def seq2seq_model(input_data, targets, lr, target_sequence_length,
                                   source_sequence_length,
                                   source_vocab_size, 
                                   encoding_embedding_size)
+
     
     
     # 预处理后的decoder输入
@@ -356,6 +426,9 @@ def get_batches(targets, sources, batch_size, source_pad_int, target_pad_int):
 train_source = source_int[batch_size:]
 train_target = target_int[batch_size:]
 # 留出一个batch进行验证
+
+
+#pad是在最后加的
 valid_source = source_int[:batch_size]
 valid_target = target_int[:batch_size]
 (valid_targets_batch, valid_sources_batch, valid_targets_lengths, valid_sources_lengths) = next(get_batches(valid_target, valid_source, batch_size,
@@ -373,6 +446,30 @@ with tf.Session(graph=train_graph) as sess:
                 get_batches(train_target, train_source, batch_size,
                            source_letter_to_int['<PAD>'],
                            target_letter_to_int['<PAD>'])):
+
+            '''
+                        {0: '<PAD>',
+                          1: '<UNK>',
+                          2: '<GO>',
+                          3: '<EOS>'
+
+                        targets_batch, 
+                         [[25 27  5 ...  0  0  0]
+                         [16  6  3 ...  0  0  0]
+                         [14 18 13 ... 12  3  0]
+                         ...
+                         [14 29 22 ... 12  3  0]
+                         [19 14  4 ...  3  0  0]
+                         [24 11 11 ...  8 20  3]] 
+                        ****
+                        sources_batch
+                         [[ 5 25 27  0  0  0  0]
+                         [ 6 16  0  0  0  0  0]
+                         [13 12  8 18 14 13  0]
+                         [12  8 26  0  0  0  0]
+                         [29 20  0  0  0  0  0]
+                         [27 20 27  0  0  0  0]
+                        '''
             
             _, loss = sess.run(
                 [train_op, cost],
